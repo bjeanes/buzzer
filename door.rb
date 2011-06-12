@@ -20,6 +20,7 @@ end
 
 allowed_numbers = [
   "+13122666880", # The buzzer
+  "+13128046488", # Home phone
   "+13127307501"  # My phone
 ]
 
