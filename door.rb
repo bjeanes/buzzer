@@ -31,6 +31,8 @@ respond "/buzz" do |r, params|
   if allowed_numbers.include? params[:From]
     r.addSay "Hello, if you have a password, please say it after the beep. Otherwise, wait to be forwarded to a person."
 
+    r.addRedirect "/unlock"
+
     r.addRecord \
       :action             => "/check_password",
       :playBeep          => true,
