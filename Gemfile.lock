@@ -1,3 +1,10 @@
+GIT
+  remote: git://github.com/bjeanes/twilio-ruby.git
+  revision: 6d1dd813b96780358a6eb4d556ae0b206a944c35
+  specs:
+    twiliolib (2.0.7)
+      builder (>= 2.1.2)
+
 GEM
   remote: http://rubygems.org/
   specs:
@@ -20,8 +27,6 @@ GEM
       tilt (>= 1.2.2, < 2.0)
     term-ansicolor (1.0.5)
     tilt (1.3.2)
-    twiliolib (2.0.7)
-      builder (>= 2.1.2)
 
 PLATFORMS
   ruby
@@ -29,4 +34,4 @@ PLATFORMS
 DEPENDENCIES
   heroku
   sinatra
-  twiliolib
+  twiliolib!

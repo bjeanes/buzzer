@@ -6,7 +6,7 @@ include Twilio
 def respond(route, &block)
   action = Proc.new do
     r = Response.new
-    r.instance_eval(&block)
+    yield r, params
     r.respond
   end
 
@@ -23,78 +23,78 @@ allowed_numbers = [
   "+13127307501" # My phone
 ]
 
-respond "/buzz" do
-  addRedirect("/unlock") and break if Thread.current[:allow_next]
+respond "/buzz" do |r, params|
+  r.addRedirect("/unlock") and break if Thread.current[:allow_next]
 
   Thread.current[:password] = nil
 
   if allowed_numbers.include? params[:From]
-    addSay "Hello, if you have a password, please say it after the beep. Otherwise, wait to be forwarded to a person."
+    r.addSay "Hello, if you have a password, please say it after the beep. Otherwise, wait to be forwarded to a person."
 
-    addRecord \
+    r.addRecord \
       :action             => "/check_password",
-      :playBleep          => true,
+      :playBeep          => true,
       :maxLength          => 10,
       :transcribe         => true,
       :transcribeCallback => "/password?CallID=#{params[:CallSid]}"
 
-    # addRedirect("/forward")
+    # r.addRedirect("/forward")
 
-    addSay "Good bye."
-    addHangup
+    r.addSay "Good bye."
+    r.addHangup
   else
-    addReject
+    r.append Reject.new
   end
 end
 
-respond "/forward" do
+respond "/forward" do |r|
   numbers = %w[3127307501 3127311448 ...]
 
   dial = Dial.new
   numbers.each { |n| dial.append Number.new(n) }
 
-  append(dial)
+  r.append(dial)
 end
 
-respond "/password" do
+respond "/password" do |r|
   Thread.current[:password] = {
     :value   => params[:TranscriptionText],
     :success => params[:TranscriptionStatus] == "completed"
   }
 end
 
-respond "/check_password" do
+respond "/check_password" do |r|
   now = Time.now.to_i
 
   while now < Time.now.to_i + 5
     if password = Thread.current[:password]
       if password[:success]
         if valid_password?(password[:value])
-          addRedirect "/unlock"
+          r.addRedirect "/unlock"
         else
-          addSay "Sorry, that is not a valid password."
-          addHangup
+          r.addSay "Sorry, that is not a valid password."
+          r.addHangup
         end
       else
-        addSay "Sorry, we couldn't understand what you said."
-        addHangup
+        r.addSay "Sorry, we couldn't understand what you said."
+        r.addHangup
       end
     end
   end
 
   if params[:attempts] >= 3
-    addSay "Sorry, there was a problem."
-    addHangup
+    r.addSay "Sorry, there was a problem."
+    r.addHangup
   else
-    addRedirect "/check_password?attempts=#{params[:attempts].to_i + 1}"
+    r.addRedirect "/check_password?attempts=#{params[:attempts].to_i + 1}"
   end
 end
 
-respond "/unlock" do
+respond "/unlock" do |r|
   Thread.current[:allow_next] = false
   Thread.current[:password]   = false
 
-  addPlay "http://www.dialabc.com/i/cache/dtmfgen/wavpcm8.300/6.wav"
+  r.addPlay "http://www.dialabc.com/i/cache/dtmfgen/wavpcm8.300/6.wav"
 end
 
 get "/allow_next" do
