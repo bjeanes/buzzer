@@ -19,8 +19,8 @@ def valid_password?(password)
 end
 
 allowed_numbers = [
-  "+1...",       # The buzzer
-  "+13127307501" # My phone
+  "+13122666880", # The buzzer
+  "+13127307501"  # My phone
 ]
 
 respond "/buzz" do |r, params|
@@ -28,7 +28,7 @@ respond "/buzz" do |r, params|
 
   Thread.current[:password] = nil
 
-  if allowed_numbers.include? params[:From]
+  if allowed_numbers.include? params[:From] || settings.environment == :development
     r.addSay "Hello, if you have a password, please say it after the beep. Otherwise, wait to be forwarded to a person."
 
     r.addRedirect "/unlock"
@@ -96,7 +96,13 @@ respond "/unlock" do |r|
   Thread.current[:allow_next] = false
   Thread.current[:password]   = false
 
-  r.addPlay "/6.au"
+  r.addPlay "/6"
+end
+
+get "/6" do
+  send_file File.expand_path("./public/6.wav"),
+    :type        => "audio/wav",
+    :disposition => "attachment"
 end
 
 get "/allow_next" do
