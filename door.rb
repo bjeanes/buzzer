@@ -50,7 +50,7 @@ respond "/buzz" do |r, params|
 end
 
 respond "/forward" do |r|
-  numbers = %w[3127307501 3127311448 ...]
+  numbers = %w[3127307501 3127311448 3128046488]
 
   dial = Dial.new
   numbers.each { |n| dial.append Number.new(n) }
