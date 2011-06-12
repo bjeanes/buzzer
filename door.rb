@@ -96,7 +96,7 @@ respond "/unlock" do |r|
   Thread.current[:allow_next] = false
   Thread.current[:password]   = false
 
-  r.addPlay "http://www.dialabc.com/i/cache/dtmfgen/wavpcm8.300/6.wav"
+  r.addPlay "/6.au"
 end
 
 get "/allow_next" do
