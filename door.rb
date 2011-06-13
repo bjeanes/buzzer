@@ -1,111 +1,103 @@
 require "bundler/setup"
 Bundler.require(:default)
 
-include Twilio
+$: << File.expand_path(".")
+require "lib/redis"
+require "lib/twilio"
+require "lib/sinatra"
 
-def respond(route, &block)
-  action = Proc.new do
-    r = Response.new
-    yield r, params
-    r.respond
-  end
+respond "/buzz" do
+  unlock! and next if allow_next?
 
-  get(route, &action)
-  post(route, &action)
-end
+  if number_allowed?(params[:From]) or development?
+    # addSay "Hello, if you have a password, please say it after the beep. Otherwise, wait to be forwarded to a person."
 
-def valid_password?(password)
-  true
-end
+    # addRecord \
+      # :action             => "/check_password_message",
+      # :playBeep           => true,
+      # :maxLength          => 3
+      # # :transcribe         => true,
+      # # :transcribeCallback => "/password"
 
-allowed_numbers = [
-  "+13122666880", # The buzzer
-  "+13128046488", # Home phone
-  "+13127307501"  # My phone
-]
 
-respond "/buzz" do |r, params|
-  r.addRedirect("/unlock") and break if Thread.current[:allow_next]
+    addGather(:numDigits => 4, :timeout => 3, :action => "/passcode") do
+      addSay "If you have a passcode, enter it now. " +
+             "Otherwise, wait to be connected to a person"
+    end
 
-  Thread.current[:password] = nil
-
-  if allowed_numbers.include? params[:From] || settings.environment == :development
-    r.addSay "Hello, if you have a password, please say it after the beep. Otherwise, wait to be forwarded to a person."
-
-    r.addRedirect "/unlock"
-
-    r.addRecord \
-      :action             => "/check_password",
-      :playBeep          => true,
-      :maxLength          => 10,
-      :transcribe         => true,
-      :transcribeCallback => "/password?CallID=#{params[:CallSid]}"
-
-    # r.addRedirect("/forward")
-
-    r.addSay "Good bye."
-    r.addHangup
+    forward!
   else
-    r.append Reject.new
+    addReject
   end
 end
 
-respond "/forward" do |r|
+respond "/passcode" do
+  if valid_passcode? params[:Digits]
+    unlock!
+  else
+    addSay "Sorry, that's not a valid passcode."
+    forward!
+  end
+end
+
+respond "/forward" do
   numbers = %w[3127307501 3127311448 3128046488]
 
   dial = Dial.new
   numbers.each { |n| dial.append Number.new(n) }
 
-  r.append(dial)
+  append(dial)
 end
 
-respond "/password" do |r|
-  Thread.current[:password] = {
-    :value   => params[:TranscriptionText],
-    :success => params[:TranscriptionStatus] == "completed"
-  }
+respond "/password" do
+  if params[:TranscriptionStatus] == "completed"
+    attempted_passwords params[:TranscriptionText].downcase.split(/[^a-z]+/)
+  end
+
+  # password_attempted!
 end
 
-respond "/check_password" do |r|
-  now = Time.now.to_i
+respond "/check_password_message" do
+  addSay "Checking..."
+  addRedirect "/check_password"
+end
 
-  while now < Time.now.to_i + 5
-    if password = Thread.current[:password]
-      if password[:success]
-        if valid_password?(password[:value])
-          r.addRedirect "/unlock"
-        else
-          r.addSay "Sorry, that is not a valid password."
-          r.addHangup
-        end
-      else
-        r.addSay "Sorry, we couldn't understand what you said."
-        r.addHangup
-      end
+respond "/check_password" do
+  timeout = Time.now + 5
+  locked = true
+
+  while Time.now < timeout
+    if valid_password?
+      addSay "We are on level 3!"
+      unlock!
+      locked = false
+      break
     end
+    sleep 0.1
   end
 
-  if params[:attempts] >= 3
-    r.addSay "Sorry, there was a problem."
-    r.addHangup
-  else
-    r.addRedirect "/check_password?attempts=#{params[:attempts].to_i + 1}"
+  if locked
+    addSay "Sorry, there was a problem."
+    # forward!
   end
 end
 
-respond "/unlock" do |r|
+respond "/unlock" do
+
   Thread.current[:allow_next] = false
   Thread.current[:password]   = false
 
-  r.addPlay "/6"
+  3.times { addPlay "/unlock_tone" }
 end
 
-get "/6" do
+get "/unlock_tone" do
   send_file File.expand_path("./public/6.wav"),
     :type        => "audio/wav",
-    :disposition => "attachment"
+    :disposition => "attachment",
+    :stream      => true
 end
 
 get "/allow_next" do
-  Thread.current[:allow_next] = true
+  allow_next!
+  "OK"
 end
