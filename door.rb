@@ -1,10 +1,9 @@
 require "bundler/setup"
 Bundler.require(:default)
 
-$: << File.expand_path(".")
-require "lib/redis"
-require "lib/twilio"
-require "lib/sinatra"
+$: << File.expand_path("./lib")
+require "support/redis"
+require "support/twilio"
 
 respond "/buzz" do
   unlock! and next if allow_next?
