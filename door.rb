@@ -5,6 +5,8 @@ $: << File.expand_path("./lib")
 require "support/redis"
 require "support/twilio"
 
+set :redis, ENV['REDISTOGO_URL'] || "redis://127.0.0.1:6379"
+
 respond "/buzz" do
   unlock! and next if allow_next?
 
