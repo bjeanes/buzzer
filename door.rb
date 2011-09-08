@@ -44,8 +44,8 @@ end
 respond "/forward" do
   numbers = %w[3127307501 3127311448 3128046488]
 
-  dial = Dial.new
-  numbers.each { |n| dial.append Number.new(n) }
+  dial = Twilio::Dial.new
+  numbers.each { |n| dial.append Twilio::Number.new(n) }
 
   append(dial)
 end
