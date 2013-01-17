@@ -13,7 +13,8 @@ end
 
 respond "/forward" do
   dial = Twilio::Dial.new
-  dial.append(Twilio::Number.new("+13123915754"))
+  dial.append(Twilio::Number.new("+13127307501"))
+  dial.append(Twilio::Number.new("+13127311448"))
 
   append(dial)
 end
